@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 import time
+from picamera2 import Picamera2
+picam2 = Picamer2()
+picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (640,480)}))
+picam2.start()
 
 def detect_obstacles(frame):
     # Function to detect obstacles and return bounding boxes
@@ -11,15 +15,24 @@ def detect_obstacles(frame):
     obstacle_detected = False
     obstacle_bbox = None
 
-    # Example: detect a red object (just for demonstration)
+    # Example: detect an object of any color (just for demonstration)
+    # Convert the frame to HSV color space
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_red = np.array([0, 100, 100])
-    upper_red = np.array([10, 255, 255])
-    mask = cv2.inRange(hsv, lower_red, upper_red)
+
+    # Define lower and upper bounds for the color of obstacles
+    lower_color = np.array([0, 50, 50])
+    upper_color = np.array([180, 255, 255])
+
+    # Create a mask using the color bounds
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+
+    # Find contours in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+    # If contours are found, assume an obstacle is detected
     if contours:
         obstacle_detected = True
+        # Get the bounding box of the first contour
         obstacle_bbox = cv2.boundingRect(contours[0])
 
     return obstacle_detected, obstacle_bbox
@@ -40,7 +53,7 @@ def main():
     fps = 0
 
     while True:
-        ret, frame = cap.read()
+        ret, frame = picam2.capture_array()
         if not ret:
             break
 
